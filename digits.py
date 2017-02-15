@@ -1,11 +1,13 @@
-import numpy as np
+from numpy import *
 import cPickle
 from scipy.io import loadmat
 
-M = loadmat("mnist_all.mat")
-data = cPickle.load(open('snapshot50.pkl', 'rb'))
 
-
+def softmax(y):
+    '''Return the output of the softmax function for the matrix of output y. y
+    is an NxM matrix where N is the number of outputs for a single case, and M
+    is the number of cases'''
+    return exp(y)/tile(sum(exp(y),0), (len(y),1))
 
 def part2(X, W):
     #Input X is a flattened 28x28 vector representing the image and bias term
@@ -23,10 +25,23 @@ def part3(W, X, Y):
     L1 = softmax(L0)
     
     #Sketchy backprop with skipped steps
-    dCdW = np.dot((L1 - Y), X.T)
+    dCdW = dot((L1 - Y), X.T)
     
+    return 0
     #Checking the Gradient
+
     
-    
+
 if __name__ =='__main__':
+    
+    M = loadmat("mnist_all.mat")
+    snapshot = cPickle.load(open("snapshot50.pkl"))
+    W0 = snapshot["W0"]
+    b0 = snapshot["b0"].reshape((300,1))
+    W1 = snapshot["W1"]
+    b1 = snapshot["b1"].reshape((10,1))
+    x = M["train5"][148:149].T  
+    
+    part2(x, dot(W0,W1))
+    
     
