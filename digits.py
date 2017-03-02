@@ -3,8 +3,9 @@ import numpy as np
 import cPickle
 from scipy.io import loadmat
 import matplotlib.pyplot as plt
-from numpy import *
+# from numpy import *
 from scipy.misc import imresize
+import random
 
 # def softmax(y):
 #     '''Return the output of the softmax function for the matrix of output y. y
@@ -104,26 +105,60 @@ def build_y(training_size, number):
     
     return y.T
     
-def part4():    
-    M = loadmat("mnist_all.mat")
-
+def build_data(train_size, valid_size, test_size, M, normalize = True):
     for i in range(10):
         cur_train = "train" + str(i)
+        random_imgs = random.sample(xrange(0, len(M[cur_train]) - 1), train_size + valid_size + test_size)
+        training_imgs = random_imgs[:train_size]
+        valid_imgs = random_imgs[train_size:train_size+valid_size]
+        test_imgs = random_imgs[train_size+valid_size:]
+        
+        training = []
+        valid = []
+        test = []
+        
+        for j in range(len(M[cur_train])):
+            if j in training_imgs:
+                training.append(M[cur_train][j])
+            elif j in valid_imgs:
+                valid.append(M[cur_train][j])
+            elif j in test_imgs:
+                test.append(M[cur_train][j])
+            
         if i == 0:
-            x = M["train0"][:10].T
-            y = build_y(np.shape(x)[1], 0)
-          
+            x = np.array(training).T
+            x_v = np.array(valid).T
+            x_t = np.array(test).T
+            y = build_y(train_size, 0)
+            y_v = build_y(valid_size, 0)
+            y_t = build_y(test_size, 0)
         else:
-            new_x = np.array(M[cur_train][:10].T)
-            x = np.hstack((x, new_x))
-            y = np.hstack((y, build_y(np.shape(new_x)[1], i))) 
+            x = np.hstack((x, np.array(training).T))
+            x_v = np.hstack((x_v, np.array(valid).T))
+            x_t = np.hstack((x_t, np.array(test).T))
+            y = np.hstack((y, build_y(train_size, i)))
+            y_v = np.hstack((y_v, build_y(valid_size, i)))
+            y_t = np.hstack((y_t, build_y(test_size, i)))
+    
+    if normalize:    
+        #normalizes X as a vector
+        x = (x - 127*ones((x.shape)))/255.0
+        x_v = (x_v - 127*ones((x_v.shape)))/255.0
+        x_t = (x_t - 127*ones((x_t.shape)))/255.0
+    
+    return x, x_v, x_t, y, y_v, y_t
+        
+    
+def part4():    
+    M = loadmat("mnist_all.mat")
+    x, x_v, x_t, y, y_v, y_t = build_data(40, 10, 10, M)
+    
+    print(shape(x), shape(x_v), shape(x_t), shape(y), shape(y_v), shape(y_t))
     
     init_w = np.random.random((10,785))/10000.
     
     print(np.shape(x), np.shape(y), np.shape(init_w))
-    
-    #normalizes X as a vector
-    x = (x - 127*ones((x.shape)))/255.0
+
     
     w = grad_descent(f, df, x, y, init_w, alpha = 0.004, divide_EPS_by = 0.01)
     
@@ -142,7 +177,7 @@ def part4():
 
 if __name__ =='__main__':
     
-    np.random.seed(0)
+    random.seed(0)
     
     M = loadmat("mnist_all.mat")
     snapshot = cPickle.load(open("snapshot50.pkl"))
