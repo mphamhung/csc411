@@ -50,9 +50,17 @@ def df(X, Y, W): #df
     return np.dot((L1-Y),X.T)
     #return np.dot((L1-Y),X.T)
     
-def grad_descent(f, df, x, y, init_t, alpha, divide_EPS_by):
-    # Added parameter divide_EPS_by: used to make EPS smaller by a factor at each
-    # time step
+def grad_descent(f, df, x, y, init_t, alpha, divide_EPS_by, plot_perf = False, test_data = []):
+    '''
+    Added parameter divide_EPS_by: used to make EPS smaller by a factor at
+    each time step. Also added an option to plot a learning curve
+    '''
+    if plot_perf:
+        x_v, y_v, x_t, y_t = test_data
+        x_axis = []
+        result_v = []
+        result_t = []
+    
     EPS = 1e-5   #EPS = 10**(-5)
     prev_t = init_t-10*EPS
     t = init_t.copy()
@@ -61,19 +69,36 @@ def grad_descent(f, df, x, y, init_t, alpha, divide_EPS_by):
     while np.linalg.norm(t - prev_t) >  EPS/divide_EPS_by and iter < max_iter:
         prev_t = t.copy()
         t -= alpha*df(x, y, t)
-        if iter % 2000 == 0:
-            # print "Iter", iter
+        if iter % 100 == 0:
+            print "Iter", iter
             # print ("f(x) = %.2f" % (f(x, y, t)) )
             # print ("Gradient: ", df(x, y, t), "\n")
-            print "Weight: ", t, "\n"
+            # print "Weight: ", t, "\n"
+            
+            #checking performance
+            if plot_perf:
+                x_axis.append(iter)
+                print "Validation set:"
+                result_v.append(validate(x_v, y_v, t))
+                print "Testing set:"
+                result_t.append(validate(x_t, y_t, t))
         iter += 1
         
     print("Total iterations: %d" % iter)
-    print t
+    # print t
+    if plot_perf:
+        plt.close()
+        
+        plot(x_axis, result_v, 'go')    
+        plot(x_axis, result_t, 'rx')
+        axis([-50, 3000, 0, 105])
+        plt.xlabel("Iterations")
+        plt.ylabel("Accuracy (%)")  
+        savefig('learning_curves.png', bbox_inches='tight')
     return t  
     
 def grad_check(X,Y,W):
-    '''Defining Variabls'''
+    '''Defining Variables'''
     row = np.linspace(1,W.shape[0],W.shape[0]).astype(int)
     col = np.linspace(1,W.shape[1],W.shape[1]).astype(int)
     
@@ -175,17 +200,15 @@ def validate(x, y, w):
         print "Size mismatch in x and y during validation"
     
     for image in range(valid_size):
-        test = np.insert(x[image], 0, 1)
-        # print np.shape(test)
-        # print np.shape(w)
-        if argmax(np.dot(w, test)) == argmax(y[image]):
+        test = np.insert(x[image], 0, 1) # appends a 1 at the start of X[i]
+        if argmax(np.dot(w, test)) == argmax(y[image]): # compares max of W.X[i] and Y[i]
             result += 1
         # else: # in case you wanna see which ones it's getting wrong
         #     print np.dot(w, test), argmax(np.dot(w, test)), y[image], argmax(y[image])
     
     print "Result: %f%%\nAccuracy: %d/%d" % (result*100/float(valid_size), result, valid_size)
     
-    return result, valid_size
+    return result*100/float(valid_size) #in case you need this
     
 def part4():    
     M = loadmat("mnist_all.mat")
@@ -196,8 +219,10 @@ def part4():
     init_w = np.random.random((10,785))/10000.
     
     # print(np.shape(x), np.shape(y), np.shape(init_w))
-
-    w = grad_descent(f, df, x, y, init_w, alpha = 0.004, divide_EPS_by = 0.01)
+    
+    test_data = [x_v, y_v, x_t, y_t]
+    w = grad_descent(f, df, x, y, init_w, alpha = 0.0002, divide_EPS_by = 0.01, plot_perf = True, test_data = test_data)
+    # w = grad_descent(f, df, x, y, init_w, alpha = 0.004, divide_EPS_by = 0.01)
     
     print(w[0][1:].shape)
     plt.close()
@@ -216,7 +241,7 @@ def part4():
     print "Testing with testing set"
     validate(x_t, y_t, w)
     
-    return x, w, y
+    return x, w, y #in case you need this
     
 
 if __name__ =='__main__':
