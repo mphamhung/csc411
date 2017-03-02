@@ -148,18 +148,55 @@ def build_data(train_size, valid_size, test_size, M, normalize = True):
     
     return x, x_v, x_t, y, y_v, y_t
         
+def perf_check(x,y,w):
+    actual = dot(w,x)
+    training_size = int(x.shape[1])
+   
+    k = 0
+    for i in range(training_size):
+        l = 0
+        for j in range(10):
+            if actual[j][i]>l:
+                l = actual[j][i]
+                index = j
+        if y[index][i] == 1:
+            k+=1
+   
+    return k/float(training_size)
+    
+def validate(x, y, w):
+    x = x.T
+    y = y.T
+    result = 0
+    valid_size = shape(x)[0]
+    
+    #error check
+    if valid_size != shape(y)[0]:
+        print "Size mismatch in x and y during validation"
+    
+    for image in range(valid_size):
+        test = np.insert(x[image], 0, 1)
+        # print np.shape(test)
+        # print np.shape(w)
+        if argmax(np.dot(w, test)) == argmax(y[image]):
+            result += 1
+        # else: # in case you wanna see which ones it's getting wrong
+        #     print np.dot(w, test), argmax(np.dot(w, test)), y[image], argmax(y[image])
+    
+    print "Result: %f%%\nAccuracy: %d/%d" % (result*100/float(valid_size), result, valid_size)
+    
+    return result, valid_size
     
 def part4():    
     M = loadmat("mnist_all.mat")
     x, x_v, x_t, y, y_v, y_t = build_data(40, 10, 10, M)
     
-    print(shape(x), shape(x_v), shape(x_t), shape(y), shape(y_v), shape(y_t))
+    # print(shape(x), shape(x_v), shape(x_t), shape(y), shape(y_v), shape(y_t))
     
     init_w = np.random.random((10,785))/10000.
     
-    print(np.shape(x), np.shape(y), np.shape(init_w))
+    # print(np.shape(x), np.shape(y), np.shape(init_w))
 
-    
     w = grad_descent(f, df, x, y, init_w, alpha = 0.004, divide_EPS_by = 0.01)
     
     print(w[0][1:].shape)
@@ -171,6 +208,13 @@ def part4():
         # imshow(w_resized, cmap=cm.gray)
         imsave('number_%d.png' % i, w_resized)
     # show()
+    
+    print "Testing with training set"
+    validate(x, y, w)    
+    print "Testing with validation set"
+    validate(x_v, y_v, w)    
+    print "Testing with testing set"
+    validate(x_t, y_t, w)
     
     return x, w, y
     
